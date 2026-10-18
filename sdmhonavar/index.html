@@ -875,13 +875,23 @@
 
 
   // 17 Oct 2026: "Apply" buttons get the library's Google Form links from
-  // the FORM_LINKS tab (getPublicFormLinks); a form not made yet stays hidden.
+  // the FORM_LINKS tab (getPublicFormLinks); a form not made yet says so when clicked.
   google.script.run.withSuccessHandler(function(links) {
     document.querySelectorAll('[data-sdm-form]').forEach(function(a) {
       var u = links && links[a.getAttribute('data-sdm-form')];
-      if (u) a.href = u; else (a.closest('li') || a).style.display = 'none';
+      if (u) a.href = u;
     });
   }).withFailureHandler(function() {}).getPublicFormLinks();
+  // Until the links arrive (or if they cannot be read), a click says so
+  // instead of opening this same page again.
+  document.addEventListener('click', function(ev) {
+    var a = ev.target.closest && ev.target.closest('[data-sdm-form]');
+    if (!a || !/#$/.test(a.getAttribute('href') || '')) return;
+    ev.preventDefault();
+    var m = a.parentNode.querySelector('.sdm-form-msg');
+    if (!m) { m = document.createElement('div'); m.className = 'sdm-form-msg'; m.style.cssText = 'font-size:12.5px;color:#a33;margin-top:4px;'; a.insertAdjacentElement('afterend', m); }
+    m.textContent = 'The form link is not ready yet. Please try again in a minute, or ask at the library counter.';
+  });
 
   function clearPublicSearch() {
     document.getElementById('book-query').value = '';
