@@ -36,7 +36,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SDM College of Arts Science and Commerce Honavar (U.K.), Library: Honavar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --ink:#20241f; --paper:#f6efdd; --card:#fffbf1;
@@ -322,6 +322,28 @@
   .sx-mailcard .g { background:#22325f; }
   .sx-mailcard .o { background:#e7e6f6; color:#22325f; }
   .sx-mailcard .f { background:#ecc392; }
+</style>
+<style id="pu-bands">
+  /* 19 Oct 2026: bands like the P.U. site. 1 dark navy, 2 Degree teal (unchanged), 3 green tabs, 4 gold message line. */
+  :root { --pu-serif:'Bookman Old Style','Bookman','URW Bookman','Libre Baskerville',Georgia,serif; }
+  .ribbon-1 { background:#101123; }
+  .ribbon-2 { background:linear-gradient(180deg,#0f5c63,#0a3f44); }
+  [data-theme="dark"] .ribbon-2 { background:linear-gradient(180deg,#0c4a50,#072d31); }
+  .ribbon-3 { background:linear-gradient(180deg,#10711f,#105f25); }
+  .ribbon-3 button { background:transparent; color:#fff8e6; }
+  .ribbon-3 button:hover, .ribbon-3 button.active { background:#e3a51c; color:#2b1a02; }
+  .sx-bar { background:#e3ba2a; border-bottom:1px solid #c99a12; }
+  .sx-status { color:#2b1a02; }
+  .sx-tlabel { background:#7a2e0e; }
+  .sx-ttrack { padding-left:0; animation-name:sxLoop; font-family:var(--pu-serif); font-weight:700; font-size:16px; color:#5a3a0c; }
+  .sx-ttrack a { color:#5a3a0c; }
+  .sx-sep { color:#7a2e0e; }
+  @keyframes sxLoop { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  .sx-call { background:#7a2e0e; }
+  .hero { padding-top:28px; align-items:start; }
+  .hero-eyebrow { font-family:var(--pu-serif); color:#b0451c; }
+  .hero h1 { font-family:var(--pu-serif); font-weight:700; letter-spacing:0; }
+  .hero p.lead { font-family:var(--pu-serif); }
 </style>
 </head>
 <body>
@@ -1644,5 +1666,12 @@ function sxMailCopy(b){
 }
 </script>
 <style>.sx-mailcard h3{color:#22325f}.sx-mailcard .addr button{border-color:#22325f;color:#22325f}.sx-mailcard .g{background:#22325f}.sx-mailcard .o{background:#e7e6f6;color:#22325f}.sx-mailcard .f{background:#ecc392}</style>
+<script>
+/* Message line: repeat the messages so the line is always full, starting from the left. */
+(function(){var t=document.getElementById('sx-ttrack'); if(!t||!window.MutationObserver) return; var busy=false;
+ new MutationObserver(function(){ if(busy||!t.innerHTML||t.getAttribute('data-x')===t.innerHTML) return; busy=true;
+   var one=t.innerHTML, sep='<span class="sx-sep">&#x2022;</span>'; t.innerHTML=one+sep+one+sep; t.setAttribute('data-x',t.innerHTML); busy=false; }).observe(t,{childList:true});
+})();
+</script>
 </body>
 </html>
