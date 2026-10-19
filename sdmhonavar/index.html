@@ -298,6 +298,31 @@
   .sx-hp { position:absolute; left:-5000px; width:1px; height:1px; overflow:hidden; }
   
 </style>
+<style id="moonlit-theme">
+  /* Moonlit colours (19 Oct 2026): indigo night, lavender mist, lamp gold. Colours only, no picture. */
+  :root {
+    --ink:#1f2340; --paper:#eceaf7; --card:#fbfaff;
+    --forest:#3b4a8a; --forest-dark:#22325f; --brass:#d9a55a; --wine:#6a4c8c;
+    --muted:#5d6080; --border:#d6d4ec;
+    --rib-blue:#4c5c9e; --rib-blue-dark:#22325f; --rib-gold:#ecc392; --rib-green:#2a3566; --rib-black:#161a33;
+  }
+  [data-theme="dark"] {
+    --ink:#e8e6f5; --paper:#14172b; --card:#1d2140;
+    --forest:#7c83bd; --forest-dark:#0e1124; --brass:#ecc392; --wine:#b79ad6;
+    --muted:#a3a9be; --border:#2f3560;
+    --rib-blue:#2a3566; --rib-blue-dark:#141a3a; --rib-green:#1a2048;
+  }
+  body { background:linear-gradient(180deg,#d9dbf2 0%,#e7e6f6 35%,#f3f1fa 100%) fixed; background-color:var(--paper); }
+  [data-theme="dark"] body { background:linear-gradient(180deg,#22325f 0%,#181c38 40%,#12152a 100%) fixed; background-color:var(--paper); }
+  header { background:#22325f; }
+  .badge-avail { background:#e3e5f6; color:#22325f; }
+  .ribbon-3 button:hover, .ribbon-3 button.active { color:#22325f; }
+  .sx-mailcard h3 { color:#22325f; }
+  .sx-mailcard .addr button { border-color:#22325f; color:#22325f; }
+  .sx-mailcard .g { background:#22325f; }
+  .sx-mailcard .o { background:#e7e6f6; color:#22325f; }
+  .sx-mailcard .f { background:#ecc392; }
+</style>
 </head>
 <body>
 <div class="sx-banner" id="sx-banner" hidden><span id="sx-banner-t"></span><button class="sx-x" type="button" aria-label="Close notice" onclick="this.parentNode.hidden=true">&#x00D7;</button></div>
@@ -1618,5 +1643,6 @@ function sxMailCopy(b){
   else { prompt('Copy this e-mail address:',t); }
 }
 </script>
+<style>.sx-mailcard h3{color:#22325f}.sx-mailcard .addr button{border-color:#22325f;color:#22325f}.sx-mailcard .g{background:#22325f}.sx-mailcard .o{background:#e7e6f6;color:#22325f}.sx-mailcard .f{background:#ecc392}</style>
 </body>
 </html>
