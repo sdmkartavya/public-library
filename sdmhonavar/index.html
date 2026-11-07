@@ -1142,6 +1142,7 @@
       <div class="icon">&#x1F6AB;</div>
       <h3 data-i18n="holidayTitle">Holidays</h3>
       <p data-i18n="holidayDesc">Closed on all government holidays. Special changes are shown on the notice board.</p>
+      <div id="hd-box" style="margin-top:8px;font-size:14px;"></div>
     </div>
   </div>
 </section>
@@ -2460,6 +2461,38 @@ function sxMailCopy(b){
   };
   // a link ending in #qpapers (or #noticeboard ...) opens that page; the page's own load handler already ran showPage before this
   window.addEventListener('load', function () { var id = (location.hash || '').slice(1); if (LOADERS[id] && !loaded[id]) { loaded[id] = 1; LOADERS[id](); tabOn("showPage('" + id + "')"); } if (id === 'pride') showPride(); });
+})();
+</script>
+
+<script>
+// Holidays box (7 Nov 2026): next holidays from the HOLIDAYS tab (AI Assistant hdUpcoming)
+(function () {
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+  function row(h) { return '<li style="margin:3px 0;"><b>' + esc(h.nice) + '</b> &ndash; ' + esc(h.en) + (h.kn ? ' <span style="font-family:\'Noto Sans Kannada\',sans-serif;color:#666;">(' + esc(h.kn) + ')</span>' : '') + '</li>'; }
+  // The open / closed line at the top opens the holiday list.
+  try {
+    var st = document.getElementById('sx-status');
+    if (st) {
+      st.style.cursor = 'pointer'; st.title = 'See the holiday list';
+      var more = document.createElement('span'); more.textContent = ' · Holidays ›'; more.style.textDecoration = 'underline'; more.style.fontWeight = '400';
+      st.appendChild(more);
+      st.addEventListener('click', function () {
+        try { showPage('about'); } catch (e) {}
+        setTimeout(function () { var b = document.getElementById('hd-box'); if (b) { var c = b.closest('.info-card') || b; c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.style.transition = 'box-shadow .4s'; c.style.boxShadow = '0 0 0 4px #ffc107'; setTimeout(function () { c.style.boxShadow = ''; }, 2500); } }, 350);
+      });
+    }
+  } catch (e) {}
+  try {
+    google.script.run.withSuccessHandler(function (x) {
+      var b = document.getElementById('hd-box'); if (!b || !x) return;
+      var h = '<div style="color:#555;margin-bottom:6px;">' + esc(x.rule) + '</div>';
+      if (x.next && x.next.length) h += '<div style="font-weight:700;">Next holidays &middot; <span style="font-family:\'Noto Sans Kannada\',sans-serif;">&#x0CAE;&#x0CC1;&#x0C82;&#x0CA6;&#x0CBF;&#x0CA8; &#x0CB0;&#x0C9C;&#x0CC6;&#x0C97;&#x0CB3;&#x0CC1;</span></div><ul style="margin:4px 0 6px 18px;padding:0;">' + x.next.map(row).join('') + '</ul>';
+      if (!x.nextYearListed) h += '<div style="color:#777;font-size:13px;">The ' + (Number(x.year) + 1) + ' list will be added when the Government announces it.</div>';
+      if (x.thisYear && x.thisYear.length) h += '<details style="margin-top:6px;"><summary style="cursor:pointer;font-weight:700;">All ' + esc(x.year) + ' holidays (' + x.thisYear.length + ')</summary><ul style="margin:4px 0 0 18px;padding:0;">' +
+        x.thisYear.map(function (r) { return r.past ? row(r).replace('<li style="', '<li style="color:#999;') : row(r); }).join('') + '</ul></details>';
+      b.innerHTML = h;
+    }).hdUpcoming();
+  } catch (e) {}
 })();
 </script>
 </body>
