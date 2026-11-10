@@ -42,6 +42,8 @@
   .box > label, .lab { display:block; font-weight:700; font-size:16px; color:var(--navy); margin-bottom:6px; }
   .lab span, .box > label span { font-weight:400; color:var(--muted); font-size:14px; }
   input.big { width:100%; font-size:24px; padding:10px 12px; border:2px solid #9fc3ea; border-radius:8px; letter-spacing:1px; }
+  .inrow { display:flex; gap:8px; } .inrow input { flex:1; min-width:0; }
+  .inrow button { flex:none; font:700 18px 'Segoe UI', Arial, sans-serif; padding:0 18px; border:0; border-radius:8px; background:var(--blue1); color:#fff; cursor:pointer; }
   input.big:focus { outline:none; border-color:var(--blue1); box-shadow:0 0 0 3px rgba(30,63,214,.15); }
   .mem { display:flex; gap:12px; margin-top:10px; align-items:flex-start; }
   .ph { width:92px; height:112px; border-radius:6px; background:#dfe4f0; flex:none; overflow:hidden; display:flex; align-items:center; justify-content:center; }
@@ -131,12 +133,12 @@
     <div class="grid">
       <div class="box">
         <label for="iMem">1. Member Lib ID <span>&middot; ಸದಸ್ಯರ ಐಡಿ (scan or type, Enter)</span></label>
-        <input class="big" id="iMem" autocomplete="off" autofocus>
+        <div class="inrow"><input class="big" id="iMem" autocomplete="off" autofocus><button id="iMemGo" type="button">Show</button></div>
         <div id="iMemOut"><div class="hint">Scan the library card or type the Lib ID.</div></div>
       </div>
       <div class="box">
         <label for="iAcc">2. Accession No <span>&middot; ಪುಸ್ತಕದ ಸಂಖ್ಯೆ (one or more, Enter after each)</span></label>
-        <input class="big" id="iAcc" autocomplete="off">
+        <div class="inrow"><input class="big" id="iAcc" autocomplete="off"><button id="iAccGo" type="button">Add</button></div>
         <div id="iBooks"><div class="hint">Scan the book barcode or type the accession number, e.g. G-12345.</div></div>
       </div>
     </div>
@@ -155,7 +157,7 @@
   <section id="pReturn">
     <div class="box">
       <label for="rIn">Accession No or Lib ID <span>&middot; ಪುಸ್ತಕದ ಸಂಖ್ಯೆ ಅಥವಾ ಸದಸ್ಯರ ಐಡಿ (Enter)</span></label>
-      <input class="big" id="rIn" autocomplete="off">
+      <div class="inrow"><input class="big" id="rIn" autocomplete="off"><button id="rInGo" type="button">Add</button></div>
       <div class="hint">Scan each book. A Lib ID brings all reference books of that member.</div>
       <div id="rList"></div>
     </div>
@@ -443,23 +445,33 @@ function renderIssue() {
   });
   var due = dueFor(Date.now(), IS.where);
   $('dueLine').innerHTML = 'Return by <b>' + fWhen(due) + '</b> &middot; ಹಿಂತಿರುಗಿಸುವ ಸಮಯ';
-  $('doIssue').disabled = !(IS.memId && IS.books.length);
+  issueBtn();
   $('doIssue').innerHTML = 'Issue' + (IS.books.length > 1 ? ' ' + IS.books.length + ' books' : '') + ' &middot; ನೀಡಿ';
 }
-function onMember() {
-  var v = $('iMem').value.trim(); if (!v) return;
+function issueBtn() {
+  var mem = IS.memId || $('iMem').value.trim(), bk = IS.books.length || $('iAcc').value.trim();
+  $('doIssue').disabled = !(mem && bk);
+}
+var MEMLOOK = null, BOOKBUSY = 0;
+function onMember(stay) {
+  var v = $('iMem').value.trim(); if (!v) return Promise.resolve();
+  if (MEMLOOK && MEMLOOK.v === v) return MEMLOOK.p;
+  if (IS.memId && (v === IS.memId || idKey(v) === idKey(IS.memId))) return Promise.resolve();
   IS.memId = v; IS.mem = null;
   $('iMemOut').innerHTML = '<div class="hint">Looking...</div>';
-  findMember(v).then(function (m) { IS.mem = m; if (m) IS.memId = m[0]; renderIssue(); $('iAcc').focus(); });
+  var p = findMember(v).then(function (m) { IS.mem = m; if (m) IS.memId = m[0]; MEMLOOK = null; renderIssue(); if (!stay) $('iAcc').focus(); });
+  MEMLOOK = { v: v, p: p };
+  return p;
 }
 function onBook() {
-  var v = $('iAcc').value.trim(); if (!v) return;
+  var v = $('iAcc').value.trim(); if (!v) return Promise.resolve();
   $('iAcc').value = '';
   var k = idKey(v);
-  if (IS.books.some(function (x) { return idKey(x.acc) === k; })) { $('iAcc').focus(); return; }
+  if (IS.books.some(function (x) { return idKey(x.acc) === k; })) { $('iAcc').focus(); return Promise.resolve(); }
   var slot = { acc: v.toUpperCase(), b: null, notes: ['Looking...'] };
   IS.books.push(slot); renderIssue();
-  findBook(v).then(function (r) {
+  BOOKBUSY++;
+  return findBook(v).finally(function () { BOOKBUSY--; }).then(function (r) {
     var b = r && r.book, notes = [];
     slot.b = b || null; if (b) slot.acc = b[0];
     if (!b) notes.push('Not in the book list on this device. It can still be issued; details are filled in when it is sent.');
@@ -472,6 +484,14 @@ function onBook() {
   });
 }
 function doIssue() {
+  if (MEMLOOK || BOOKBUSY) {   // a lookup is still running: wait for it
+    $('doIssue').disabled = true;
+    return new Promise(function (r) { setTimeout(r, 150); }).then(doIssue);
+  }
+  if ($('iMem').value.trim() && !IS.memId || $('iAcc').value.trim()) {   // typed but Enter not pressed
+    $('doIssue').disabled = true;
+    return onMember(true).then(function () { return onBook(); }).then(function () { if (IS.memId && IS.books.length) doIssue(); else renderIssue(); });
+  }
   if (!(IS.memId && IS.books.length)) return;
   var now = Date.now(), due = dueFor(now, IS.where), by = $('staff').value || 'Reception', card = $('cardKept').checked;
   var name = IS.mem ? IS.mem[1] : '';
@@ -503,11 +523,13 @@ function renderReturn() {
   Array.prototype.forEach.call($('rList').querySelectorAll('.x'), function (b) {
     b.onclick = function () { RT.splice(+b.getAttribute('data-i'), 1); RT.msg = ''; renderReturn(); $('rIn').focus(); };
   });
-  $('doReturn').disabled = !RT.length;
+  $('doReturn').disabled = !(RT.length || $('rIn').value.trim());
   $('doReturn').innerHTML = 'Return' + (RT.length > 1 ? ' ' + RT.length + ' books' : '') + ' &middot; ಹಿಂಪಡೆಯಿರಿ';
 }
 function onReturnInput() {
   var v = $('rIn').value.trim(); if (!v) return;
+  if (RT.msg && RT.lastV === v) return;
+  RT.lastV = v;
   $('rIn').value = ''; RT.msg = '';
   var k = idKey(v), open = openLoans(), have = {};
   RT.forEach(function (x) { have[x.l.uid] = 1; });
@@ -519,6 +541,7 @@ function onReturnInput() {
   renderReturn(); $('rIn').focus();
 }
 function doReturn(list) {
+  if (!list && $('rIn').value.trim()) { onReturnInput(); if (!RT.length) return; }
   list = list || RT.map(function (x) { return x.l; });
   if (!list.length) return;
   var now = Date.now(), by = $('staff').value || 'Reception', names = {};
@@ -619,7 +642,17 @@ function showPanel(id) {
 }
 Array.prototype.forEach.call(document.querySelectorAll('nav button'), function (b) { b.onclick = function () { showPanel(b.getAttribute('data-p')); }; });
 $('iMem').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); onMember(); } });
-$('iMem').addEventListener('input', function () { if (IS.memId && $('iMem').value.trim() !== IS.memId) { IS.memId = ''; IS.mem = null; renderIssue(); } });
+$('iMem').addEventListener('input', function () { if (IS.memId && idKey($('iMem').value) !== idKey(IS.memId)) { IS.memId = ''; IS.mem = null; renderIssue(); } else issueBtn(); });
+$('iMem').addEventListener('change', function () { onMember(true); });
+$('iMemGo').onclick = function () { onMember(); };
+$('iAcc').addEventListener('input', issueBtn);
+$('iAcc').addEventListener('change', function () { if (!IS.memId && $('iMem').value.trim()) onMember(true); onBook(); });
+$('iAccGo').onclick = function () { if (!IS.memId && $('iMem').value.trim()) onMember(true); onBook(); $('iAcc').focus(); };
+$('rIn').addEventListener('input', function () { $('doReturn').disabled = !(RT.length || $('rIn').value.trim()); });
+$('rIn').addEventListener('change', onReturnInput);
+$('rInGo').onclick = function () { onReturnInput(); };
+// keep the typing box focused when a button is pressed, so the page does not move under the click
+['doIssue', 'doReturn', 'iMemGo', 'iAccGo', 'rInGo'].forEach(function (id) { $(id).addEventListener('mousedown', function (e) { e.preventDefault(); }); });
 $('iAcc').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); if (!IS.memId && $('iMem').value.trim()) onMember(); onBook(); } });
 $('doIssue').onclick = doIssue; $('clrIssue').onclick = clearIssue;
 $('rIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); onReturnInput(); } });
