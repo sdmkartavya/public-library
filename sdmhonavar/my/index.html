@@ -225,6 +225,32 @@ footer a{color:var(--c1)}
         '<div class="meta">Points: book returned on time '+esc(p.rules.onTime)+', late '+esc(p.rules.late)+', book review '+esc(p.rules.review)+', Pratibha work '+esc(p.rules.work)+'. <a href="../pratibha/#send">Send a work to Pratibha Corner</a></div>';
     },function(){ var box=$('pcPts'); if(box) box.style.display='none'; });
   }
+  // 9 Nov 2026: fine account - balance, payments, reductions (FineAccount.gs, faMyFines)
+  var faYears=1;
+  function faRs(n){ return 'Rs '+(Math.round((Number(n)||0)*100)/100); }
+  function faLoad(y){
+    if(y!=null) faYears=y;
+    var box=$('faFines'); if(!box) return;
+    call('faMyFines',[token,faYears],function(f){
+      var col={due:'is',clear:'av',books:'wt'}[f.status.kind]||'gr';
+      var yb=[[1,'1 year'],[3,'3 years'],[0,'All years']].map(function(x){ return '<button class="b2" data-fay="'+x[0]+'"'+(x[0]===faYears?' style="background:var(--c1);color:#fff"':'')+'>'+x[1]+'</button>'; }).join(' ');
+      var lines=f.statement.lines.filter(function(l){ return l.type!=='Running'; }).slice().reverse();
+      var run=f.statement.lines.filter(function(l){ return l.type==='Running'; });
+      box.innerHTML='<h2>My fine account <span class="kn">\u0ca8\u0ca8\u0ccd\u0ca8 \u0ca6\u0c82\u0ca1 \u0c96\u0cbe\u0ca4\u0cc6</span></h2>'+
+        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:30px;font-weight:800;color:'+(f.balance>0?'var(--bad)':'var(--ok)')+'">'+faRs(f.balance>0?f.balance:0)+'</div><div class="a">balance today <span class="kn">\u0c87\u0c82\u0ca6\u0cbf\u0ca8 \u0cac\u0cbe\u0c95\u0cbf</span></div></div>'+
+        '<div style="margin:8px 0"><span class="pill '+col+'" style="white-space:normal">'+esc(f.status.text)+'</span><div class="kn" style="margin-top:4px">'+esc(f.status.kn)+'</div></div>'+
+        (run.length?'<div class="meta">Late fine still running on books not yet returned (added when you return them): '+run.map(function(l){ return esc(l.ref)+' '+faRs(l.amount); }).join(', ')+'</div>':'')+
+        '<div class="meta" style="margin:6px 0">Charged '+faRs(f.charged)+' &#xB7; Paid '+faRs(f.paid)+' &#xB7; Reduced / waived '+faRs(f.reduced)+' (all years)</div>'+
+        '<div style="margin:8px 0">'+yb+'</div>'+
+        (f.statement.from?'<div class="meta">'+esc(f.statement.label)+' &#xB7; balance on '+esc(f.statement.from)+': '+faRs(f.statement.opening)+'</div>':'')+
+        (lines.length?lines.map(function(l){
+          var paid=(l.type==='Payment'||l.type==='Reduce'), name={Charge:'Fine / charge',Payment:'Paid',Reduce:'Reduced by library',Paid:'Paid'}[l.type]||l.type;
+          return '<div class="item"><div><div class="t">'+esc(name)+' &#xB7; '+esc(l.reason)+'</div><div class="meta">'+esc(l.date)+(l.ref?' &#xB7; '+esc(l.ref):'')+(l.bill?' &#xB7; '+esc(l.bill):'')+(l.counts?'':' &#xB7; not in balance')+'</div></div>'+
+            '<div style="text-align:right;white-space:nowrap"><b style="color:'+(paid?'var(--ok)':l.type==='Paid'?'var(--mute)':'var(--bad)')+'">'+(paid?'- ':l.type==='Paid'?'':'+ ')+faRs(l.amount)+'</b>'+(l.balance!==''?'<div class="meta">bal '+faRs(l.balance)+'</div>':'')+'</div></div>';
+        }).join(''):'<p class="a">No fines in this period.</p>');
+    },function(m){ box.innerHTML='<h2>My fine account</h2><p class="a">'+esc(m)+'</p>'; });
+  }
+  document.addEventListener('click',function(e){ var b=e.target.closest('[data-fay]'); if(b) faLoad(Number(b.getAttribute('data-fay'))); });
   function loadAccount(){
     $('login').style.display='none'; var box=$('acct'); box.style.display='block'; box.innerHTML='<div class="card">Loading your account...</div>';
     call('mpMyAccount',[token],function(a){ me=a; renderAccount(); },function(m){ box.innerHTML='<div class="card msg bad">'+esc(m)+'</div>'; });
@@ -234,6 +260,7 @@ footer a{color:var(--c1)}
     h+='<div class="card hello"><div><h2 style="margin:0">Namaskara, '+esc(a.name)+'</h2><div class="a">Card No '+esc(a.card)+(a.membEnd?' &#xB7; Membership valid till '+esc(a.membEnd):'')+'</div>'+
        (a.expired?'<div class="msg bad">Your membership has expired. Please renew it at the library.</div>':'')+'</div><button class="b2" id="logout">Log out</button></div>';
     h+='<div class="card" id="pcPts"><h2>My reading points</h2><p class="a">Loading...</p></div>';
+    h+='<div class="card" id="faFines"><h2>My fine account <span class="kn">\u0ca8\u0ca8\u0ccd\u0ca8 \u0ca6\u0c82\u0ca1 \u0c96\u0cbe\u0ca4\u0cc6</span></h2><p class="a">Loading...</p></div>';
     h+='<div class="card"><h2>Books with me ('+a.loans.length+')</h2>'+(a.loans.length? a.loans.map(function(l){
         return '<div class="item"><div><div class="t">'+esc(l.title)+'</div><div class="a">'+esc(l.author)+'</div><div class="meta">Acc No '+esc(l.acc)+' &#xB7; taken '+esc(l.issueDate)+'</div>'+
           '<div style="margin-top:4px"><span class="pill '+(l.overdue?'is':'av')+'">'+(l.overdue?'Overdue &#xB7; was due ':'Due ')+esc(l.dueDate)+'</span>'+(l.reason?' <span class="meta">'+esc(l.reason)+'</span>':'')+'</div></div>'+
@@ -252,7 +279,7 @@ footer a{color:var(--c1)}
           return '<div class="item"><div><div class="t">'+esc(s.title)+'</div><div class="meta">'+esc(s.author)+' &#xB7; '+esc(s.date)+'</div></div><span class="pill gr">'+esc(s.status)+'</span></div>'; }).join('')+'</details>':'')+'</div>';
     h+='<div class="card"><details><summary>My reading history ('+a.historyCount+' books)</summary>'+(a.history.length? a.history.map(function(x){
         return '<div class="item"><div><div class="t">'+esc(x.title)+'</div><div class="meta">'+esc(x.author)+' &#xB7; '+esc(x.issueDate)+' to '+esc(x.returnDate)+'</div></div></div>'; }).join('') : '<p class="a">No history yet.</p>')+'</details></div>';
-    $('acct').innerHTML=h; pcLoadPts();
+    $('acct').innerHTML=h; pcLoadPts(); faLoad();
     $('logout').onclick=function(){ call('mpLogout',[token],function(){}); logoutLocal(); showLogin(); };
     $('sBtn').onclick=function(){
       var t=$('sTitle').value.trim(); if(t.length<2){ msg('sMsg','Please type the title.','bad'); return; }
