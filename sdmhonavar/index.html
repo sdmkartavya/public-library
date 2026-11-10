@@ -2495,5 +2495,87 @@ function sxMailCopy(b){
   } catch (e) {}
 })();
 </script>
+<!-- ===== 9 Nov 2026: menu by subject (dropdowns) + phone fixes. Same for Degree and P.U. ===== -->
+<style>
+  .ribbon-3 .rb-grp > .rb-gbtn::after { content:' \25BE'; font-size:11px; }
+  .ribbon-3 .nb-dd.rb-open .nb-menu { display:block; }
+  .ribbon-3 .nb-menu { max-height:70vh; overflow-y:auto; }
+  .ribbon-3:hover, .ribbon-3.rb-raise { z-index:85; }
+  .ribbon-3 .rb-grp.rb-on > .rb-gbtn { background:var(--rib-gold, #ffb300); color:#1f1300; }
+  .ribbon-3 .nb-menu button.active { background:#fff3c4; color:#1f1300; }
+  @media (hover:none) { .nb-dd:hover .nb-menu, .nb-dd:focus-within .nb-menu { display:none; } .ribbon-3 .nb-dd.rb-open .nb-menu { display:block; } }
+  /* phone: status line and news line stay inside the screen */
+  body { overflow-x:hidden; }
+  .sx-bar { max-width:100%; box-sizing:border-box; }
+  .sx-ticker { min-width:0; }
+  .sx-ttrack { white-space:nowrap; }
+  @media (prefers-reduced-motion: reduce) { .sx-ttrack { white-space:nowrap; } .sx-tview { overflow-x:auto; } }
+  @media (max-width:600px) {
+    .sx-status { white-space:normal; flex-wrap:wrap; min-width:0; max-width:100%; line-height:1.35; }
+    .sx-status > span:not(.sx-dot) { min-width:0; overflow-wrap:anywhere; }
+    .ribbon-3 { gap:4px; padding:6px 8px; }
+    .ribbon-3 > button, .ribbon-3 > .nb-dd > button { padding:7px 11px; font-size:13px; }
+    .ribbon-3 .nb-menu { min-width:210px; max-width:calc(100vw - 16px); }
+  }
+</style>
+<script>
+(function () {
+  var GROUPS = [
+    ['grpBooks', 'Books & Papers', ["showPage('papers')", "showPage('search')", "showPage('newarrivals')", "showPage('topbooks')", "showPage('glance')"]],
+    ['grpStudents', 'Students', ["showPage('qpapers')", "location.href='./pratibha/'", "location.href='./honours/'", "showPride()", "showPage('events')"]],
+    ['grpGallery', 'Gallery & News', ["showPage('gallery')", "showPage('moments')", "location.href='./news/'", "showPage('recognitions')"]],
+    ['grpAbout', 'About Library', ["showPage('aboutus')", "location.href='./ourlibrary/'", "showPage('about')", "showPage('stats')", "showPage('implinks')", "showPage('faq')", "showPage('contact')"]]
+  ];
+  var KN = { grpBooks: 'ಪುಸ್ತಕ ಮತ್ತು ಪತ್ರಿಕೆ', grpStudents: 'ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ', grpGallery: 'ಚಿತ್ರ ಮತ್ತು ಸುದ್ದಿ', grpAbout: 'ಗ್ರಂಥಾಲಯದ ಬಗ್ಗೆ' };
+  try { GROUPS.forEach(function (g) { i18n.en[g[0]] = g[1]; i18n.kn[g[0]] = KN[g[0]]; }); } catch (e) {}
+  var rb = document.getElementById('ribbon-3');
+  if (!rb || rb.getAttribute('data-rb')) return;
+  rb.setAttribute('data-rb', '1');
+  var direct = Array.prototype.slice.call(rb.children);
+  var btnOf = function (fn) {
+    for (var i = 0; i < direct.length; i++) { var b = direct[i]; if (b.tagName === 'BUTTON' && (b.getAttribute('onclick') || '').indexOf(fn) === 0) return b; }
+    return null;
+  };
+  var anchor = btnOf('sxOpenFb()') || null;
+  GROUPS.forEach(function (g) {
+    var items = g[2].map(btnOf).filter(Boolean);
+    if (!items.length) return;
+    var w = document.createElement('span'); w.className = 'nb-dd rb-grp';
+    var gb = document.createElement('button'); gb.type = 'button'; gb.className = 'rb-gbtn'; gb.setAttribute('data-i18n', g[0]);
+    var lang = ''; try { lang = currentLang; } catch (e) {}
+    gb.innerHTML = lang === 'kn' ? KN[g[0]] : g[1];
+    var m = document.createElement('span'); m.className = 'nb-menu';
+    items.forEach(function (b) { m.appendChild(b); });
+    w.appendChild(gb); w.appendChild(m);
+    if (anchor && anchor.parentNode === rb) rb.insertBefore(w, anchor); else rb.appendChild(w);
+  });
+  var closeAll = function (except) { rb.querySelectorAll('.nb-dd.rb-open').forEach(function (d) { if (d !== except) d.classList.remove('rb-open'); }); if (!rb.querySelector('.rb-open')) rb.classList.remove('rb-raise'); };
+  var fit = function (d) {
+    var m = d.querySelector('.nb-menu'); if (!m) return;
+    m.style.left = '0px';
+    var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+    if (r.right > vw - 8) m.style.left = Math.min(0, vw - 8 - r.right) + 'px';
+    r = m.getBoundingClientRect();
+    if (r.left < 8) m.style.left = (parseFloat(m.style.left) + 8 - r.left) + 'px';
+  };
+  rb.querySelectorAll('.nb-dd').forEach(function (d) {
+    var top = d.querySelector(':scope > button');
+    d.addEventListener('mouseenter', function () { fit(d); });
+    top.addEventListener('click', function (e) {
+      var open = !d.classList.contains('rb-open');
+      closeAll();
+      if (open) { d.classList.add('rb-open'); fit(d); rb.classList.add('rb-raise'); var mm = d.querySelector('.nb-menu'); if (mm && mm.getBoundingClientRect().bottom > window.innerHeight && mm.scrollIntoView) mm.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      if (top.classList.contains('rb-gbtn')) e.stopPropagation();
+    });
+    d.querySelectorAll('.nb-menu button').forEach(function (b) {
+      b.addEventListener('click', function () { setTimeout(function () { closeAll(); if (document.activeElement) document.activeElement.blur(); }, 0); });
+    });
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest || !e.target.closest('#ribbon-3 .nb-dd')) closeAll(); });
+  var mark = function () { rb.querySelectorAll('.rb-grp').forEach(function (g) { g.classList.toggle('rb-on', !!g.querySelector('.nb-menu button.active')); }); };
+  if (window.MutationObserver) new MutationObserver(mark).observe(rb, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  mark();
+})();
+</script>
 </body>
 </html>
